@@ -1,8 +1,7 @@
 #include <jni.h>
 #include <string>
 
-extern "C"
-JNIEXPORT jstring
+extern "C" JNIEXPORT jstring
 
 JNICALL
 Java_openeyes_drawalive_seven_openeyes_MainEyes_stringFromJNI(

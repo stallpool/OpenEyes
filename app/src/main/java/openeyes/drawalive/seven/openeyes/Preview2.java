@@ -1,6 +1,8 @@
 package openeyes.drawalive.seven.openeyes;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -26,6 +28,8 @@ import openeyes.drawalive.seven.openeyes.filter.BitmapFilter;
 import openeyes.drawalive.seven.openeyes.filter.SobelOperator;
 
 import static android.content.Context.CAMERA_SERVICE;
+
+import androidx.core.app.ActivityCompat;
 
 // Ref:
 // Camera      >> https://developer.android.com/training/camera/cameradirect.html#TaskOpenCamera
@@ -59,7 +63,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
       boolean qOpened = false;
       try {
          // assume last camera is front one
-         String cameraId = mCamera2List[mCamera2List.length-1];
+         String cameraId = mCamera2List[mCamera2List.length - 1];
          CameraCharacteristics cc = mCameraMgr.getCameraCharacteristics(cameraId);
          StreamConfigurationMap map = cc.get(
                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
@@ -76,6 +80,18 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          );
          Log.i(TAG, String.format("%d %d ...", mCamera2Size.getWidth(), mCamera2Size.getHeight()));
          mImageReader.setOnImageAvailableListener(this, new Handler());
+         if (ActivityCompat.checkSelfPermission(
+               this.getImageView().getContext(), Manifest.permission.CAMERA
+         ) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            throw new Exception("permission denied");
+         }
          mCameraMgr.openCamera(cameraId, new CameraDevice.StateCallback() {
             @Override
             public void onOpened(CameraDevice cameraDevice) {
@@ -83,12 +99,14 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
                mCamera2 = cameraDevice;
                createCamera2PreviewSession();
             }
+
             @Override
             public void onDisconnected(CameraDevice cameraDevice) {
                Log.i(TAG, "camera disconnected ...");
                mCamera2.close();
                mCamera2 = null;
             }
+
             @Override
             public void onError(CameraDevice cameraDevice, int i) {
                Log.i(TAG, "camera error ...");
@@ -270,10 +288,10 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
       @Override
       public void run() {
          if (image == null) return;
-         //byte[] pixels = yuv420ToNV21(image);
+         byte[] pixels = yuv420ToNV21(image);
          image.close();
-         //int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();
-         //Bitmap bmp = yuvToBitmap(pixels, w, h, ImageFormat.NV21);
+         int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();
+         Bitmap bmp = yuvToBitmap(pixels, w, h, ImageFormat.NV21);
          bmp = rotatedBitmap(bmp);
          processFrame(bmp);
       }

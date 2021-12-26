@@ -30,7 +30,7 @@ class Preview1 extends Preview implements Camera.PreviewCallback {
    }
 
    @Override
-   public boolean safeCameraOpen() {
+   public boolean safeCameraOpen(String cameraId) {
       boolean qOpened = false;
       try {
          setCamera(Camera.open(Camera.CameraInfo.CAMERA_FACING_FRONT));

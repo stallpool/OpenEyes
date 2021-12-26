@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -21,7 +22,7 @@ public class MainEyes extends AppCompatActivity {
    @Override
    protected void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
-
+      selectedCameraId = "0";
 
       if(ActivityCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
@@ -53,7 +54,7 @@ public class MainEyes extends AppCompatActivity {
       button.setOnClickListener(new View.OnClickListener() {
          @Override
          public void onClick(View view) {
-            preview.safeCameraOpen();
+            preview.safeCameraOpen(selectedCameraId);
          }
       });
       btnpanel.addView(button);
@@ -113,6 +114,28 @@ public class MainEyes extends AppCompatActivity {
       btnpanel.addView(button);
       panel.addView(btnpanel);
 
+      btnpanel = new LinearLayout(this);
+      params = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+      );
+      btnpanel.setLayoutParams(params);
+      btnpanel.setOrientation(LinearLayout.HORIZONTAL);
+      CameraSpinner spinner = new CameraSpinner(this);
+      spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+         @Override
+         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            selectedCameraId = (String)spinner.getItemAtPosition(position);
+         }
+
+         @Override
+         public void onNothingSelected(AdapterView<?> parent) {
+            selectedCameraId = "0";
+         }
+      });
+      btnpanel.addView(spinner);
+      panel.addView(btnpanel);
+
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
          preview = new Preview2(this);
       } else {
@@ -145,4 +168,5 @@ public class MainEyes extends AppCompatActivity {
    private native String stringFromJNI();
 
    private Preview preview;
+   private String selectedCameraId;
 }

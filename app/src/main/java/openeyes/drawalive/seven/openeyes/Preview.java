@@ -107,7 +107,7 @@ public abstract class Preview {
       );
    }
 
-   public abstract boolean safeCameraOpen();
+   public abstract boolean safeCameraOpen(String cameraId);
    public abstract void stopPreview();
    public abstract void stopPreviewAndFreeCamera();
 

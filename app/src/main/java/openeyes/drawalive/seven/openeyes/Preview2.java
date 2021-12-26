@@ -54,16 +54,14 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          mCamera2List = null;
       }
       mCamera2Timestamp = System.currentTimeMillis();
-      processLock = new Object();
       processBusy = false;
    }
 
    @Override
-   public boolean safeCameraOpen() {
+   public boolean safeCameraOpen(String cameraId) {
       boolean qOpened = false;
       try {
          // assume last camera is front one
-         String cameraId = mCamera2List[mCamera2List.length - 1];
          CameraCharacteristics cc = mCameraMgr.getCameraCharacteristics(cameraId);
          StreamConfigurationMap map = cc.get(
                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
@@ -156,10 +154,9 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
    protected HandlerThread mBackgroundThread;
    protected Handler mBackgroundHandler;
    protected long mCamera2Timestamp;
-   protected Object processLock;
    protected boolean processBusy;
 
-   public void lock() { synchronized (processLock) { processBusy = true; } }
+   public synchronized void lock() {  processBusy = true; }
    public void unlock() { processBusy = false; }
 
    private void startBackgroundThread() {
@@ -292,10 +289,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
             image.close();
             return;
          }
-         synchronized (processLock) {
-            // XXX: many calls sleep here without notified ...
-            lock();
-         }
+         lock();
          byte[] pixels = yuv420ToNV21(image);
          image.close();
          int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();

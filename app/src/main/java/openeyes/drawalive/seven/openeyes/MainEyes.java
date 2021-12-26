@@ -3,8 +3,8 @@ package openeyes.drawalive.seven.openeyes;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -63,6 +63,51 @@ public class MainEyes extends AppCompatActivity {
          @Override
          public void onClick(View view) {
             preview.stopPreview();
+         }
+      });
+      btnpanel.addView(button);
+      panel.addView(btnpanel);
+
+      btnpanel = new LinearLayout(this);
+      params = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+      );
+      btnpanel.setLayoutParams(params);
+      btnpanel.setOrientation(LinearLayout.HORIZONTAL);
+      button = new Button(this);
+      button.setText("R+-0");
+      button.setOnClickListener(new View.OnClickListener() {
+         @Override
+         public void onClick(View view) {
+            preview.rotateCamera(0);
+         }
+      });
+      btnpanel.addView(button);
+      button = new Button(this);
+      button.setText("R+90");
+      button.setOnClickListener(new View.OnClickListener() {
+         @Override
+         public void onClick(View view) {
+            preview.rotateCamera(90);
+         }
+      });
+      btnpanel.addView(button);
+      button = new Button(this);
+      button.setText("R-90");
+      button.setOnClickListener(new View.OnClickListener() {
+         @Override
+         public void onClick(View view) {
+            preview.rotateCamera(-90);
+         }
+      });
+      btnpanel.addView(button);
+      button = new Button(this);
+      button.setText("R180");
+      button.setOnClickListener(new View.OnClickListener() {
+         @Override
+         public void onClick(View view) {
+            preview.rotateCamera(180);
          }
       });
       btnpanel.addView(button);

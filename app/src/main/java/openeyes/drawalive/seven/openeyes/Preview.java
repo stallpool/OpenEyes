@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
+import android.graphics.Matrix;
 import android.graphics.YuvImage;
 import android.os.Build;
 import android.os.Handler;
@@ -22,6 +23,7 @@ public abstract class Preview {
    protected static final String TAG = "Preview";
 
    public Preview(Context context) {
+      cameraRotate = null;
       imageView = new ImageView(context);
       handler = new Handler();
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -79,6 +81,32 @@ public abstract class Preview {
       }
    }
 
+   public void rotateCamera(int degree) {
+      switch(degree) {
+         case 90:
+            cameraRotate = new Matrix();
+            cameraRotate.postRotate(90);
+            break;
+         case -90:
+            cameraRotate = new Matrix();
+            cameraRotate.postRotate(-90);
+            break;
+         case 180:
+            cameraRotate = new Matrix();
+            cameraRotate.postRotate(180);
+            break;
+         default:
+            cameraRotate = null;
+      }
+   }
+
+   protected Bitmap rotatedBitmap(Bitmap bmp) {
+      if (cameraRotate == null) return bmp;
+      return Bitmap.createBitmap(
+            bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), cameraRotate, true
+      );
+   }
+
    public abstract boolean safeCameraOpen();
    public abstract void stopPreview();
    public abstract void stopPreviewAndFreeCamera();
@@ -89,4 +117,5 @@ public abstract class Preview {
    protected Allocation in, out;
    protected ImageView imageView;
    protected Handler handler;
+   protected Matrix cameraRotate;
 }

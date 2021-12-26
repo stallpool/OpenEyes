@@ -91,6 +91,7 @@ class Preview1 extends Preview implements Camera.PreviewCallback {
       Camera.Size size = params.getPictureSize();
       int w = size.width, h = size.height;
       Bitmap bmp = yuvToBitmap(bytes, w, h, params.getPreviewFormat());
+      bmp = rotatedBitmap(bmp);
       processFrame(bmp);
    }
 

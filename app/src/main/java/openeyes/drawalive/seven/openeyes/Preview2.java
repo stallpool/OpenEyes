@@ -15,7 +15,6 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Size;
 import android.widget.ImageView;
@@ -51,6 +50,8 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          mCamera2List = null;
       }
       mCamera2Timestamp = System.currentTimeMillis();
+      processLock = new Object();
+      processBusy = false;
    }
 
    @Override
@@ -77,19 +78,19 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          mImageReader.setOnImageAvailableListener(this, new Handler());
          mCameraMgr.openCamera(cameraId, new CameraDevice.StateCallback() {
             @Override
-            public void onOpened(@NonNull CameraDevice cameraDevice) {
+            public void onOpened(CameraDevice cameraDevice) {
                Log.i(TAG, "camera opened ...");
                mCamera2 = cameraDevice;
                createCamera2PreviewSession();
             }
             @Override
-            public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+            public void onDisconnected(CameraDevice cameraDevice) {
                Log.i(TAG, "camera disconnected ...");
                mCamera2.close();
                mCamera2 = null;
             }
             @Override
-            public void onError(@NonNull CameraDevice cameraDevice, int i) {
+            public void onError(CameraDevice cameraDevice, int i) {
                Log.i(TAG, "camera error ...");
                mCamera2.close();
                mCamera2 = null;
@@ -111,7 +112,10 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
    @Override
    public void stopPreviewAndFreeCamera() {
       try {
-         mCaptureSession.stopRepeating();
+         if (mCaptureSession != null) {
+            mCaptureSession.stopRepeating();
+            mCaptureSession = null;
+         }
          if (mCamera2 != null) {
             mCamera2.close();
             mCamera2 = null;
@@ -133,6 +137,11 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
    protected HandlerThread mBackgroundThread;
    protected Handler mBackgroundHandler;
    protected long mCamera2Timestamp;
+   protected Object processLock;
+   protected boolean processBusy;
+
+   public void lock() { synchronized (processLock) { processBusy = true; } }
+   public void unlock() { processBusy = false; }
 
    private void startBackgroundThread() {
       mBackgroundThread = new HandlerThread("CameraBackground");
@@ -161,7 +170,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
                Collections.singletonList(mImageReader.getSurface()),
                new CameraCaptureSession.StateCallback() {
                   @Override
-                  public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                  public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                      mCaptureSession = cameraCaptureSession;
                      try {
                         mPreviewRequestBuilder.set(
@@ -188,7 +197,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
                      }
                   }
                   @Override
-                  public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                  public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
                   }
                }, mBackgroundHandler
          );
@@ -260,10 +269,12 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
       }
       @Override
       public void run() {
-         byte[] pixels = yuv420ToNV21(image);
+         if (image == null) return;
+         //byte[] pixels = yuv420ToNV21(image);
          image.close();
-         int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();
-         Bitmap bmp = yuvToBitmap(pixels, w, h, ImageFormat.NV21);
+         //int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();
+         //Bitmap bmp = yuvToBitmap(pixels, w, h, ImageFormat.NV21);
+         bmp = rotatedBitmap(bmp);
          processFrame(bmp);
       }
    }
@@ -325,17 +336,23 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
 
    @Override
    public void onImageAvailable(ImageReader imageReader) {
+      if (processBusy) return;
+      synchronized (processLock) {
+         // XXX: many calls sleep here without notified ...
+         lock();
+      }
       try {
          Image image = imageReader.acquireLatestImage();
          mBackgroundHandler.post(new Camera2PostAction(getImageView(), image));
       } catch(Exception e) {
+         unlock();
          e.printStackTrace();
       }
    }
 
    private void processFrame(Bitmap bmp) {
       BitmapFilter filter = null;
-      filter = new SobelOperator();
+      //filter = new SobelOperator();
       //filter = new Kernel3x3Filter(new double[]{-1,0,0, 0,1,0, 0,0,0});
       //filter = new Kernel3x3Filter(new double[]{-1,0,0, 0,0,0, 0,0,1});
       //filter = new HistogramEqualizationFilter();
@@ -361,6 +378,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          } else {
             preview.getImageView().setImageBitmap(filter.act(bmp));
          }
+         preview.unlock();
       }
    }
 }

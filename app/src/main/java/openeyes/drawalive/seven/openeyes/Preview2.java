@@ -142,6 +142,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
       } catch (Exception e) {
          e.printStackTrace();
       }
+      unlock();
    }
 
    protected CameraManager mCameraMgr;
@@ -287,13 +288,21 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
       }
       @Override
       public void run() {
-         if (image == null) return;
+         if (processBusy) {
+            image.close();
+            return;
+         }
+         synchronized (processLock) {
+            // XXX: many calls sleep here without notified ...
+            lock();
+         }
          byte[] pixels = yuv420ToNV21(image);
          image.close();
          int w = mCamera2Size.getWidth(), h = mCamera2Size.getHeight();
          Bitmap bmp = yuvToBitmap(pixels, w, h, ImageFormat.NV21);
          bmp = rotatedBitmap(bmp);
          processFrame(bmp);
+         unlock();
       }
    }
 
@@ -354,13 +363,9 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
 
    @Override
    public void onImageAvailable(ImageReader imageReader) {
-      if (processBusy) return;
-      synchronized (processLock) {
-         // XXX: many calls sleep here without notified ...
-         lock();
-      }
       try {
-         Image image = imageReader.acquireLatestImage();
+         Image image = imageReader.acquireNextImage();
+         if (image == null) return;
          mBackgroundHandler.post(new Camera2PostAction(getImageView(), image));
       } catch(Exception e) {
          unlock();
@@ -370,7 +375,7 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
 
    private void processFrame(Bitmap bmp) {
       BitmapFilter filter = null;
-      //filter = new SobelOperator();
+      filter = new SobelOperator();
       //filter = new Kernel3x3Filter(new double[]{-1,0,0, 0,1,0, 0,0,0});
       //filter = new Kernel3x3Filter(new double[]{-1,0,0, 0,0,0, 0,0,1});
       //filter = new HistogramEqualizationFilter();
@@ -396,7 +401,6 @@ class Preview2 extends Preview implements ImageReader.OnImageAvailableListener {
          } else {
             preview.getImageView().setImageBitmap(filter.act(bmp));
          }
-         preview.unlock();
       }
    }
 }
